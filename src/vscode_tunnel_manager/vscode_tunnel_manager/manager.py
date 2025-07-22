@@ -25,6 +25,7 @@ class VSCodeTunnelManager:
         logger.info(
             f"Initialized VSCodeTunnelManager with working dir: {self.working_dir}"
         )
+        self.change_working_directory(self.working_dir)
 
     @staticmethod
     def change_working_directory(new_path: Union[str, pathlib.Path]) -> None:
@@ -71,7 +72,9 @@ class VSCodeTunnelManager:
                 for chunk in response.iter_content(chunk_size=chunk_size):
                     if chunk:  # filter out keep-alive chunks
                         file.write(chunk)
-
+        if not output_path.is_file():
+            logger.error(f"Failed to download VS Code tarball: {output_path}")
+            raise FileNotFoundError(f"Downloaded file not found: {output_path}")
         return output_path
 
     @staticmethod
