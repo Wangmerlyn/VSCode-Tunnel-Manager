@@ -71,7 +71,7 @@ current_version = "0.0.2"
 commit          = true
 tag             = true
 tag_name        = "v{new_version}"
-allow_dirty     = false
+allow_dirty     = true
 
 # Either 0.1.0   or 0.1.0.post3
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(?:\\.post(?P<post>\\d+))?"
