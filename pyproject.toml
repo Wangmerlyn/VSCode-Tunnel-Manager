@@ -18,7 +18,16 @@ maintainers = [
   {name = "Siyuan Wang", email = "sywang0227@gmail.com"},
 ]
 classifiers = [
-
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 license = {text = "MIT license"}
 dependencies = [
@@ -62,7 +71,7 @@ current_version = "0.0.2"
 commit          = true
 tag             = true
 tag_name        = "v{new_version}"
-allow_dirty     = true
+allow_dirty     = false
 
 # Either 0.1.0   or 0.1.0.post3
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(?:\\.post(?P<post>\\d+))?"
@@ -117,7 +126,7 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
-ignore = ["E501"]
+ignore = []
 exclude = ["build", "dist", ".venv"]
 
 [tool.ruff.lint.isort]
