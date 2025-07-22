@@ -1,5 +1,5 @@
 import pathlib
-import tarfile
+import tarfile as tar
 from typing import Union
 
 import requests
@@ -7,6 +7,11 @@ import requests
 from vscode_tunnel_manager.utils.logger import setup_logger
 
 logger = setup_logger(name=__name__)
+
+_DEFAULT_VSCODE_CLI_URL = (
+    "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64"
+)
+_DEFAULT_VSCODE_CLI_OUTPUT = "vscode_cli.tar.gz"
 
 
 class VSCodeTunnelManager:
@@ -28,8 +33,8 @@ class VSCodeTunnelManager:
 
     def download_vscode(
         self,
-        url: str = "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64",
-        output: Union[str, pathlib.Path] = "vscode_cli.tar.gz",
+        url: str = _DEFAULT_VSCODE_CLI_URL,
+        output: Union[str, pathlib.Path] = _DEFAULT_VSCODE_CLI_OUTPUT,
         verify_ssl: bool = True,
         chunk_size: int = 8192,
     ) -> pathlib.Path:
@@ -59,6 +64,9 @@ class VSCodeTunnelManager:
         if not output_path.is_file():
             logger.error("Failed to download VS Code tarball: %s", output_path)
             raise FileNotFoundError(f"Downloaded file not found: {output_path}")
+        if not output_path.name.endswith(".tar.gz"):
+            logger.error("Downloaded file is not a tar.gz file: %s", output_path)
+            raise ValueError(f"Downloaded file is not a tar.gz file: {output_path}")
 
         logger.debug("Downloaded file size: %d bytes", output_path.stat().st_size)
         return output_path
@@ -84,15 +92,17 @@ class VSCodeTunnelManager:
         extract_path.mkdir(parents=True, exist_ok=True)
 
         logger.info("Extracting %s to %s", archive_path, extract_path)
-        with tarfile.open(archive_path, "r:gz") as tar:
-            # Security: Prevent path traversal attacks by checking each member.
+        safe_members = []
+        with tar.open(archive_path, "r:gz") as tar_file:
             resolved_extract_path = extract_path.resolve()
-            for member in tar.getmembers():
+            for member in tar_file.getmembers():
                 member_path = (resolved_extract_path / member.name).resolve()
                 if not str(member_path).startswith(str(resolved_extract_path)):
                     raise PermissionError(
                         f"Path traversal attempt in tar file: {member.name}"
                     )
-            tar.extractall(path=extract_path)
+                safe_members.append(member)
+
+            tar_file.extractall(path=extract_path, members=safe_members)
 
         return extract_path
