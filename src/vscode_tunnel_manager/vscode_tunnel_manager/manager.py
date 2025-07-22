@@ -1,3 +1,4 @@
+import os
 import pathlib
 import tarfile
 from typing import Union
@@ -8,15 +9,38 @@ from vscode_tunnel_manager.utils.logger import setup_logger
 
 logger = setup_logger(name=__name__)
 
-class CliInterfaceManager:
+
+class VSCodeTunnelManager:
     """
     Manages the CLI interface for the VSCode Tunnel Manager.
     This class handles the command-line interface operations, including
     parsing arguments and executing commands.
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, working_dir: Union[str, pathlib.Path] = ".") -> None:
+        self.working_dir = pathlib.Path(working_dir).resolve()
+        if not self.working_dir.is_dir():
+            logger.error(f"Working directory does not exist: {self.working_dir}")
+            raise ValueError(f"Invalid working directory: {self.working_dir}")
+        logger.info(
+            f"Initialized VSCodeTunnelManager with working dir: {self.working_dir}"
+        )
+
+    @staticmethod
+    def change_working_directory(new_path: Union[str, pathlib.Path]) -> None:
+        """
+        Changes the current working directory.
+
+        Args:
+            new_path (str | Path): The new directory path to change to.
+        """
+        new_path = pathlib.Path(new_path)
+        if not new_path.is_dir():
+            logger.error(f"Directory does not exist: {new_path}")
+            return
+        logger.info(f"Changing working directory to: {new_path}")
+        os.chdir(new_path)
+        logger.debug(f"Current working directory is now: {pathlib.Path.cwd()}")
 
     @staticmethod
     def download_vscode(
