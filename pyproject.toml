@@ -1,7 +1,6 @@
 [build-system]
 requires = [
   "setuptools>=61.0",
-  "argparse",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -43,8 +42,7 @@ dev = [
   "coverage",       # Testing
   "mypy",           # Type checking
   "pytest",         # Testing
-  "ruff",           # Linting
-  "black",          # Formatting
+  "ruff",           # Linting and formatting
   "pre-commit",    # Git hooks
   "bump-my-version",   # Version management
 ]
@@ -57,8 +55,8 @@ homepage = "https://github.com/Wangmerlyn/VSCode-Tunnel-Manager"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools.package-data]
-"*" = ["*.*"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 # Dynamic version source: reads __version__ from VSCode-Tunnel-Manager package
 [tool.setuptools.dynamic]
