@@ -85,6 +85,12 @@ class VSCodeTunnelManager:
 
         logger.info("Extracting %s to %s", archive_path, extract_path)
         with tarfile.open(archive_path, "r:gz") as tar:
+            # Security: Prevent path traversal attacks by checking each member.
+            resolved_extract_path = extract_path.resolve()
+            for member in tar.getmembers():
+                member_path = (resolved_extract_path / member.name).resolve()
+                if not str(member_path).startswith(str(resolved_extract_path)):
+                    raise PermissionError(f"Path traversal attempt in tar file: {member.name}")
             tar.extractall(path=extract_path)
 
         return extract_path
