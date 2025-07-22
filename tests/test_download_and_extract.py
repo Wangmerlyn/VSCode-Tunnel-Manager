@@ -1,7 +1,7 @@
 from vscode_tunnel_manager import VSCodeTunnelManager
 
 
-def test_download_and_extract_vscode(tmp_path: str) -> None:
+def test_download_and_extract_vscode(tmp_path: pathlib.Path) -> None:
     """
     Downloads and extracts the VS Code CLI tarball.
     """
