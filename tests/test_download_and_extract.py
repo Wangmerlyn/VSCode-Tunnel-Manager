@@ -1,14 +1,11 @@
-import os
-
 from vscode_tunnel_manager import VSCodeTunnelManager
 
 
-def test_download_and_extract_vscode() -> None:
+def test_download_and_extract_vscode(tmp_path: str) -> None:
     """
     Downloads and extracts the VS Code CLI tarball.
     """
-    test_path = os.path.join(os.getcwd(), "test_playground")
-    os.makedirs("test_playground", exist_ok=True)
+    test_path = tmp_path
     manager = VSCodeTunnelManager(working_dir=test_path)
     vscode_path = manager.download_vscode()
     assert vscode_path.is_file(), "VS Code tarball was not downloaded successfully."
