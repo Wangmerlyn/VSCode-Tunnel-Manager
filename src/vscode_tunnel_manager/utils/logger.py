@@ -66,7 +66,7 @@ def _build_file_handler(
 
 
 def setup_logger(
-    name: str = "keep_gpu",
+    name: str = "vscode_tunnel_manager",
     default_console_level: Optional[int] = logging.INFO,
     default_file_level: Optional[int] = None,
 ) -> logging.Logger:
