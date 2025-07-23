@@ -1,5 +1,4 @@
 import pathlib
-import subprocess
 import tarfile as tar
 from typing import Union
 
@@ -108,11 +107,18 @@ class VSCodeTunnelManager:
 
         return extract_path
 
-    def start_tunnel(self):
+    def start_tunnel(self) -> None:
         # run working_dir/code tunnel in cmdline
         code_executable = self.working_dir / "code"
         if not code_executable.is_file():
             logger.error("VS Code CLI executable not found: %s", code_executable)
-            raise FileNotFoundError(f"VS Code CLI executable not found: {code_executable}")
+            raise FileNotFoundError(
+                f"VS Code CLI executable not found: {code_executable}"
+            )
         logger.info("Starting VS Code tunnel with command: %s tunnel", code_executable)
-        
+        # TODO
+        raise NotImplementedError(
+            "Starting VS Code tunnel is not implemented yet. "
+            "You can run the command manually: "
+            f"{code_executable} tunnel"
+        )
