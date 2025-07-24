@@ -83,12 +83,6 @@ def parse_args() -> argparse.Namespace:
         "--poll-interval", type=float, default=1.0, help="Polling interval in seconds"
     )
     parser.add_argument(
-        "--subject-prefix",
-        type=str,
-        default="[VS Code Tunnel]",
-        help="Email subject prefix",
-    )
-    parser.add_argument(
         "--extra-args",
         nargs="*",
         default=None,
