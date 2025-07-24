@@ -54,14 +54,15 @@ class VSCodeTunnelManager:
     ) -> None:
         self.mailer = EmailManager(mailer_config) if mailer_config else None
         if mailer_config and self.mailer:
-            try:
-                self.mailer.send_text(
-                    f"VS Code Tunnel Manager {tunnel_config.tunnel_name} Initialized",
-                    body=f"Tunnel Manager initialized with working directory: {tunnel_config.working_dir}",
-                    to_addrs=mailer_config.to_addrs,
+            is_successful = self.mailer.send_text(
+                f"VS Code Tunnel Manager {tunnel_config.tunnel_name} Initialized",
+                body=f"Tunnel Manager initialized with working directory: {tunnel_config.working_dir}",
+                to_addrs=mailer_config.to_addrs,
+            )
+            if not is_successful:
+                logger.error(
+                    "Failed to send initialization email, using print instead."
                 )
-            except Exception as e:
-                logger.error("Failed to send initialization email: %s", e)
                 self.mailer = None
         self.tunnel_config = tunnel_config
         self.working_dir = pathlib.Path(tunnel_config.working_dir).resolve()
