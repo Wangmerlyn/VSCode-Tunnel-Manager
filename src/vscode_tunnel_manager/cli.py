@@ -10,7 +10,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="VSCode Tunnel Manager CLI")
     # for the email configuration
     parser.add_argument(
-        "--host", type=str, required=True, help="SMTP host for sending emails."
+        "--host",
+        type=str,
+        default="smtp.google.com",
+        help="SMTP host for sending emails.",
     )
     parser.add_argument(
         "--port", type=int, default=587, help="SMTP port for sending emails."
@@ -106,7 +109,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main()->None:
+def main() -> None:
     args = parse_args()
 
     tunnel_config = VSCodeTunnelManagerConfig(
