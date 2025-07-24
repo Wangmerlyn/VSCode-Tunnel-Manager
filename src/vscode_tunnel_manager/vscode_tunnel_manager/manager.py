@@ -410,5 +410,9 @@ class VSCodeTunnelManager:
             log_file=self.tunnel_config.log_file,
             log_append=self.tunnel_config.log_append,
         )
+        time.sleep(3)  # give some time for the tunnel to stabilize
+        import pdb
+
+        pdb.set_trace()  # noqa: T201
         self.tunnel_rename(self.tunnel_config.tunnel_name)
         self.tunnel_start()
