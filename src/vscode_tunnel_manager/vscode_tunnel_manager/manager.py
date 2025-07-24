@@ -169,7 +169,7 @@ class VSCodeTunnelManager:
 
         # ---- internal constants you asked to hard-code ----
         DOWN_PRESSES = 1  # how many times to press Arrow-Down
-        SEND_KEYS_ON_FLUSH = True  # also send on every flush
+        SEND_KEYS_ON_FLUSH = False  # also send on every flush
         # ---------------------------------------------------
 
         mailer = self.mailer
