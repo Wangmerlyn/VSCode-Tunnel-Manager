@@ -150,7 +150,7 @@ class VSCodeTunnelManager:
 
         return extract_path
 
-    def start_tunnel(
+    def tunnel_login(
         self,
         tunnel_name: str = "vscode-tunnel",
         batch_lines: int = 20,
@@ -360,7 +360,7 @@ class VSCodeTunnelManager:
             self.extract_tar_gz(vscode_tar_gz)
         else:
             logger.info("VS Code CLI already extracted.")
-        self.start_tunnel(
+        self.tunnel_login(
             tunnel_name=self.tunnel_config.tunnel_name,
             batch_lines=self.tunnel_config.batch_lines,
             idle_seconds=self.tunnel_config.idle_seconds,

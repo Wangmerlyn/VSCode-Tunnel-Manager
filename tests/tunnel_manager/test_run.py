@@ -7,15 +7,13 @@ import pytest
 from vscode_tunnel_manager import VSCodeTunnelManager, VSCodeTunnelManagerConfig
 from vscode_tunnel_manager.email_manager import SMTPConfig
 
-LOGIN_URL="https://github.com/login/device"
-CODE_PREFIX="use code"
+LOGIN_URL = "https://github.com/login/device"
+CODE_PREFIX = "use code"
 
 
 @pytest.mark.manual
 def test_running_tunnel(tmp_path: Path) -> None:
-    tunnel_config = VSCodeTunnelManagerConfig(
-        working_dir=tmp_path
-    )
+    tunnel_config = VSCodeTunnelManagerConfig(working_dir=tmp_path)
 
     cfg = SMTPConfig(
         host="smtp.gmail.com",
@@ -31,7 +29,7 @@ def test_running_tunnel(tmp_path: Path) -> None:
     vscode_path = manager.download_vscode()
     manager.extract_tar_gz(vscode_path)
 
-    tunnel_thread = threading.Thread(target=manager.start_tunnel)
+    tunnel_thread = threading.Thread(target=manager.tunnel_login)
     tunnel_thread.daemon = True
     tunnel_thread.start()
 
