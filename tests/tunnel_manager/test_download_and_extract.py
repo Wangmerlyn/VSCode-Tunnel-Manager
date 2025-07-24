@@ -15,7 +15,7 @@ mail_config = SMTPConfig(
 )
 
 tunnel_config = VSCodeTunnelManagerConfig(
-    working_dir=pathlib.Path("~/tmp/code-tunnel").expanduser(),
+    working_dir=tmp_path,
 )
 
 
