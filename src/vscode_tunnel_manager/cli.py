@@ -57,9 +57,6 @@ def parse_args() -> argparse.Namespace:
         help="Prefix for the subject of the emails.",
     )
 
-    # for the tunnel configuration
-    parser = argparse.ArgumentParser(description="VSCode Tunnel Manager Config")
-
     parser.add_argument(
         "--tunnel-name", type=str, default="vscode-tunnel", help="Tunnel name"
     )
