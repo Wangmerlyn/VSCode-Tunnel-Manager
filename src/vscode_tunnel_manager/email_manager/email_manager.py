@@ -11,6 +11,10 @@ from dataclasses import dataclass, field
 from email.message import EmailMessage
 from typing import Iterable, Optional, Sequence
 
+from vscode_tunnel_manager.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 
 @dataclass
 class SMTPConfig:
@@ -93,7 +97,7 @@ class EmailManager:
                     return True
                 except Exception as e:
                     if attempt == self.max_retries:
-                        print(
+                        logger.error(
                             f"[EmailManager] Send failed after {attempt} attempts: {e}"
                         )
                         return False
