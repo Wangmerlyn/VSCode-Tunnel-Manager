@@ -112,6 +112,8 @@ files = "."
 strict = true
 warn_unreachable = true
 warn_no_return = true
+# remove this line after pytest has type annotations
+# see https://fuchsia.googlesource.com/third_party/github.com/pylint-dev/pylint/%2B/259fbd23960d3f4bbb36d9a0c1ca60168dc8fcaa/pyproject.toml?utm_source=chatgpt.com for related code
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
