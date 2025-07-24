@@ -32,7 +32,6 @@ class VSCodeTunnelManagerConfig:
     batch_lines: int = 20
     idle_seconds: float = 5.0
     poll_interval: float = 1.0
-    subject_prefix: str = "[VS Code Tunnel]"
     extra_args: Optional[Sequence[str]] = None
     log_file: Optional[Union[str, pathlib.Path]] = None
     log_append: bool = True

@@ -110,7 +110,6 @@ def main() -> None:
         batch_lines=args.batch_lines,
         idle_seconds=args.idle_seconds,
         poll_interval=args.poll_interval,
-        subject_prefix=args.subject_prefix,
         extra_args=args.extra_args,
         log_file=args.log_file,
         log_append=args.log_append,
