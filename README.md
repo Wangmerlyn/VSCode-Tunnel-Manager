@@ -26,8 +26,8 @@ pip install git+https://github.com/Wangmerlyn/VSCode-Tunnel-Manager.git@main
 vscode_tunnel_manager \
   --host smtp.gmail.com \
   --port 587 \
-  --username your-sender-address@gmail.com \ # you can use any email you like
-  --from-addr your-sender-address@gmail.com \ # not neccessarily gmail
+  --username your-sender-address@gmail.com \
+  --from-addr your-sender-address@gmail.com \
   --to-addrs your-receiver-address@gmail.com \
   --subject-prefix "[VS Code Tunnel] " \
   --starttls \
