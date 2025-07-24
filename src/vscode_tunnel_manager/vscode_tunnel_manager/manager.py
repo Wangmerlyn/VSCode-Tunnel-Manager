@@ -20,6 +20,10 @@ _DEFAULT_VSCODE_CLI_OUTPUT = "vscode_cli.tar.gz"
 @dataclass
 class VSCodeTunnelManagerConfig:
     tunnel_name: str = "vscode-tunnel"
+    # choice of authentication
+    #  - "github" (default): use GitHub Device Code flow
+    #  - "microsoft": no authentication, open tunnel to localhost
+    provider: str = "github"
     working_dir: Union[str, pathlib.Path] = "."
     batch_lines: int = 20
     idle_seconds: float = 5.0
@@ -28,6 +32,11 @@ class VSCodeTunnelManagerConfig:
     extra_args: Optional[Sequence[str]] = None
     log_file: Optional[Union[str, pathlib.Path]] = None
     log_append: bool = True
+
+    def __post_init__(self) -> None:
+        assert self.provider in ["github", "microsoft"], (
+            f"Invalid provider: {self.provider}. Must be 'github' or 'microsoft'."
+        )
 
 
 class VSCodeTunnelManager:
@@ -168,7 +177,7 @@ class VSCodeTunnelManager:
         from datetime import datetime
 
         # ---- internal constants you asked to hard-code ----
-        DOWN_PRESSES = 1  # how many times to press Arrow-Down
+        DOWN_PRESSES = 0  # how many times to press Arrow-Down
         SEND_KEYS_ON_FLUSH = False  # also send on every flush
         # ---------------------------------------------------
 
@@ -190,7 +199,14 @@ class VSCodeTunnelManager:
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Compose the full command
-        cmd = [str(code_executable), "tunnel"]
+        cmd = [
+            str(code_executable),
+            "tunnel",
+            "user",
+            "login",
+            "--provider",
+            self.tunnel_config.provider,
+        ]
         if extra_args:
             cmd.extend(extra_args)
 
