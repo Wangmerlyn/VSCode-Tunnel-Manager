@@ -373,8 +373,6 @@ class VSCodeTunnelManager:
         proc = subprocess.run(
             cmd,
             cwd=self.working_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
             text=True,
         )
         if proc.returncode != 0:
