@@ -1,7 +1,11 @@
 import os
 import pathlib
+import select
+import subprocess
 import tarfile as tar
+import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, Sequence, Union
 
 import requests
@@ -171,11 +175,6 @@ class VSCodeTunnelManager:
         Additionally, automatically send Down-Arrow key(s) + Enter to the process'
         stdin once after start, and again on every flush.
         """  # noqa: D401
-        import pathlib
-        import select
-        import subprocess
-        import time
-        from datetime import datetime
 
         # ---- internal constants you asked to hard-code ----
         DOWN_PRESSES = 0  # how many times to press Arrow-Down
@@ -287,9 +286,6 @@ class VSCodeTunnelManager:
             batch_idx += 1
 
         try:
-            # Immediately press Down + Enter after the process starts
-            _send_down_and_enter()
-
             stdout = proc.stdout
             if stdout is None:
                 raise RuntimeError("Failed to capture process stdout.")
@@ -342,6 +338,50 @@ class VSCodeTunnelManager:
                 except Exception:
                     pass
 
+    def tunnel_rename(self, new_name: str) -> None:
+        cmd = [
+            str(self.working_dir / "code"),
+            "tunnel",
+            "rename",
+            f'"{new_name}"',
+        ]
+        logger.info("Renaming tunnel with command: %s", " ".join(cmd))
+        proc = subprocess.run(
+            cmd,
+            cwd=self.working_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if proc.returncode != 0:
+            logger.error(
+                "Failed to rename tunnel: %s\n%s",
+                proc.stderr.strip(),
+                proc.stdout.strip(),
+            )
+            raise RuntimeError(f"Failed to rename tunnel: {proc.stderr.strip()}")
+
+    def tunnel_start(self) -> None:
+        cmd = [
+            str(self.working_dir / "code"),
+            "tunnel",
+        ]
+        logger.info("Starting tunnel with command: %s", " ".join(cmd))
+        proc = subprocess.run(
+            cmd,
+            cwd=self.working_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if proc.returncode != 0:
+            logger.error(
+                "Failed to start tunnel: %s\n%s",
+                proc.stderr.strip(),
+                proc.stdout.strip(),
+            )
+            raise RuntimeError(f"Failed to start tunnel: {proc.stderr.strip()}")
+
     def run(self) -> None:
         if not self.working_dir.is_dir():
             os.makedirs(self.working_dir, exist_ok=True)
@@ -370,3 +410,5 @@ class VSCodeTunnelManager:
             log_file=self.tunnel_config.log_file,
             log_append=self.tunnel_config.log_append,
         )
+        self.tunnel_rename(self.tunnel_config.tunnel_name)
+        self.tunnel_start()
