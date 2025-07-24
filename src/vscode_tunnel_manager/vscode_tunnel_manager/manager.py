@@ -57,6 +57,7 @@ class VSCodeTunnelManager:
         tunnel_config: VSCodeTunnelManagerConfig = VSCodeTunnelManagerConfig(),
     ) -> None:
         self.mailer = EmailManager(mailer_config) if mailer_config else None
+        self.mailer_config = mailer_config
         if mailer_config and self.mailer:
             is_successful = self.mailer.send_text(
                 f"VS Code Tunnel Manager {tunnel_config.tunnel_name} Initialized",
@@ -406,7 +407,7 @@ class VSCodeTunnelManager:
             batch_lines=self.tunnel_config.batch_lines,
             idle_seconds=self.tunnel_config.idle_seconds,
             poll_interval=self.tunnel_config.poll_interval,
-            subject_prefix=self.tunnel_config.subject_prefix,
+            subject_prefix=self.mailer_config.subject_prefix if self.mailer_config else "[VS Code Tunnel]",
             extra_args=self.tunnel_config.extra_args,
             log_file=self.tunnel_config.log_file,
             log_append=self.tunnel_config.log_append,
