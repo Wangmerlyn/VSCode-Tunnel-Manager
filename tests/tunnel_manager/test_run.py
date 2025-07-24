@@ -2,8 +2,6 @@ import threading
 import time
 from pathlib import Path
 
-import pytest
-
 from vscode_tunnel_manager import VSCodeTunnelManager, VSCodeTunnelManagerConfig
 from vscode_tunnel_manager.email_manager import SMTPConfig
 
@@ -11,7 +9,6 @@ LOGIN_URL = "https://github.com/login/device"
 CODE_PREFIX = "use code"
 
 
-@pytest.mark.manual
 def test_running_tunnel(tmp_path: Path) -> None:
     tunnel_config = VSCodeTunnelManagerConfig(working_dir=tmp_path)
 

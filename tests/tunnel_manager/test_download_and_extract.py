@@ -14,15 +14,15 @@ mail_config = SMTPConfig(
     subject_prefix="[VS Code Tunnel] ",
 )
 
-tunnel_config = VSCodeTunnelManagerConfig(
-    working_dir=tmp_path,
-)
 
 
 def test_download_and_extract_vscode(tmp_path: pathlib.Path) -> None:
     """
     Downloads and extracts the VS Code CLI tarball.
     """
+    tunnel_config = VSCodeTunnelManagerConfig(
+        working_dir=tmp_path,
+    )
     manager = VSCodeTunnelManager(mailer_config=mail_config, tunnel_config=tunnel_config)
     vscode_path = manager.download_vscode()
     assert vscode_path.is_file(), "VS Code tarball was not downloaded successfully."
