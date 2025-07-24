@@ -319,24 +319,27 @@ class VSCodeTunnelManager:
             try:
                 f_log.flush()
                 f_log.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to close log file: %s", e)
 
             try:
                 if proc.stdin:
                     proc.stdin.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to close process stdin: %s", e)
 
             try:
                 if proc.poll() is None:
                     proc.terminate()
                     proc.wait(timeout=5)
-            except Exception:
+            except subprocess.TimeoutExpired:
+                logger.warning("Process did not terminate in time, killing it...")
                 try:
                     proc.kill()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to kill process: %s", e)
+            except Exception as e:
+                logger.warning("Failed during process termination: %s", e)
 
     def tunnel_rename(self, new_name: str) -> None:
         cmd = [
