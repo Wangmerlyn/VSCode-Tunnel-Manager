@@ -1,9 +1,10 @@
 import pathlib
 import tarfile as tar
-from typing import Union
+from typing import Optional, Sequence, Union
 
 import requests
 
+from vscode_tunnel_manager.email_manager import EmailManager
 from vscode_tunnel_manager.utils.logger import setup_logger
 
 logger = setup_logger(name=__name__)
@@ -107,18 +108,127 @@ class VSCodeTunnelManager:
 
         return extract_path
 
-    def start_tunnel(self) -> None:
-        # run working_dir/code tunnel in cmdline
+    def start_tunnel(
+        self,
+        mailer: EmailManager,  # Your EmailManager instance
+        batch_lines: int = 20,
+        idle_seconds: float = 5.0,
+        poll_interval: float = 1.0,
+        subject_prefix: str = "[VS Code Tunnel]",
+        extra_args: Optional[Sequence[str]] = None,
+    ) -> None:
+        """
+        Start `./code tunnel`, continuously read its combined stdout/stderr,
+        and email chunks of the output when either:
+        1) the number of buffered lines reaches `batch_lines`, or
+        2) no new line has been received for `idle_seconds`.
+
+        Args:
+            mailer: An EmailManager instance that handles sending emails.
+            batch_lines: Send an email every time this many lines are buffered.
+            idle_seconds: Send an email if we receive no new output for this many seconds.
+            poll_interval: How frequently (seconds) to check for new output / idle.
+            subject_prefix: Prefix added to the email subject.
+            extra_args: Extra CLI flags to forward to `code tunnel`.
+
+        Raises:
+            FileNotFoundError: If the `code` binary does not exist in working_dir.
+        """  # noqa
+        import select
+        import subprocess
+        import time
+
         code_executable = self.working_dir / "code"
         if not code_executable.is_file():
             logger.error("VS Code CLI executable not found: %s", code_executable)
             raise FileNotFoundError(
                 f"VS Code CLI executable not found: {code_executable}"
             )
-        logger.info("Starting VS Code tunnel with command: %s tunnel", code_executable)
-        # TODO
-        raise NotImplementedError(
-            "Starting VS Code tunnel is not implemented yet. "
-            "You can run the command manually: "
-            f"{code_executable} tunnel"
+
+        # Compose the full command
+        cmd = [str(code_executable), "tunnel"]
+        if extra_args:
+            cmd.extend(extra_args)
+
+        logger.info("Starting VS Code tunnel with command: %s", " ".join(cmd))
+
+        # Start the subprocess (merge stderr into stdout)
+        proc = subprocess.Popen(
+            cmd,
+            cwd=self.working_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,  # decode to str automatically
+            bufsize=1,  # line-buffered
+            universal_newlines=True,  # ensure text mode
         )
+
+        # Internal state
+        buffer: list[str] = []
+        last_new_line_ts = time.time()
+        batch_idx = 1
+
+        def flush(reason: str, force: bool = False) -> None:
+            """Send the currently buffered lines via email (if any)."""
+            nonlocal buffer, batch_idx
+            if not buffer and not force:
+                return
+            body = "\n".join(buffer) if buffer else "(no new output)"
+            subject = (
+                f"{subject_prefix} Batch #{batch_idx} ({len(buffer)} lines) - {reason}"
+            )
+            ok = mailer.send_text(subject, body)
+            if ok:
+                logger.info("Email sent: %s", subject)
+            else:
+                logger.error("Failed to send email: %s", subject)
+            buffer.clear()
+            batch_idx += 1
+
+        try:
+            stdout = proc.stdout
+            if stdout is None:
+                raise RuntimeError("Failed to capture process stdout.")
+
+            # Main loop: poll for new lines or idle timeout
+            while True:
+                # If the process has exited and stdout is closed, break out
+                if proc.poll() is not None and stdout.closed:
+                    break
+
+                # Use select to non-blockingly check for new output
+                rlist, _, _ = select.select([stdout], [], [], poll_interval)
+                if rlist:
+                    # Read one line
+                    line = stdout.readline()
+                    if line:
+                        buffer.append(line.rstrip("\n"))
+                        last_new_line_ts = time.time()
+
+                        # Condition 1: enough lines buffered
+                        if len(buffer) >= batch_lines:
+                            flush(reason="batch_lines")
+                    else:
+                        # EOF case: if process exited, break after flushing
+                        if proc.poll() is not None:
+                            break
+                else:
+                    # No new output in this poll interval; check idle condition
+                    now = time.time()
+                    if now - last_new_line_ts >= idle_seconds:
+                        flush(reason="idle_timeout")
+
+            # Final flush after the process exits
+            flush(reason="process_exit", force=True)
+
+        finally:
+            # Ensure we clean up the process if still alive
+            try:
+                if proc.poll() is None:
+                    proc.terminate()
+                    proc.wait(timeout=5)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
