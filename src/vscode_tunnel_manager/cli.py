@@ -129,4 +129,4 @@ def main() -> None:
     )
 
     manager = VSCodeTunnelManager(mailer_config, tunnel_config=tunnel_config)
-    manager.start_tunnel()
+    manager.run()
