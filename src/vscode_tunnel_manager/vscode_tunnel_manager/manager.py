@@ -1,6 +1,7 @@
 import os
 import pathlib
 import tarfile as tar
+from dataclasses import dataclass
 from typing import Optional, Sequence, Union
 
 import requests
@@ -16,6 +17,19 @@ _DEFAULT_VSCODE_CLI_URL = (
 _DEFAULT_VSCODE_CLI_OUTPUT = "vscode_cli.tar.gz"
 
 
+@dataclass
+class VSCodeTunnelManagerConfig:
+    tunnel_name: str = "vscode-tunnel"
+    working_dir: Union[str, pathlib.Path] = "."
+    batch_lines: int = 20
+    idle_seconds: float = 5.0
+    poll_interval: float = 1.0
+    subject_prefix: str = "[VS Code Tunnel]"
+    extra_args: Optional[Sequence[str]] = None
+    log_file: Optional[Union[str, pathlib.Path]] = None
+    log_append: bool = True
+
+
 class VSCodeTunnelManager:
     """
     Manages the CLI interface for the VSCode Tunnel Manager.
@@ -27,10 +41,11 @@ class VSCodeTunnelManager:
     def __init__(
         self,
         mailer_config: SMTPConfig,
-        working_dir: Union[str, pathlib.Path] = ".",
+        tunnel_config: VSCodeTunnelManagerConfig = VSCodeTunnelManagerConfig(),
     ) -> None:
         self.mailer = EmailManager(mailer_config)
-        self.working_dir = pathlib.Path(working_dir).resolve()
+        self.tunnel_config = tunnel_config
+        self.working_dir = pathlib.Path(tunnel_config.working_dir).resolve()
         os.makedirs(self.working_dir, exist_ok=True)
         if not self.working_dir.is_dir():
             logger.error(f"Working directory does not exist: {self.working_dir}")
@@ -117,6 +132,7 @@ class VSCodeTunnelManager:
 
     def start_tunnel(
         self,
+        tunnel_name: str = "vscode-tunnel",
         batch_lines: int = 20,
         idle_seconds: float = 5.0,
         poll_interval: float = 1.0,
@@ -132,24 +148,19 @@ class VSCodeTunnelManager:
         2) no new line has been received for `idle_seconds`.
 
         Meanwhile, stream every output line to a dedicated log file for debugging.
-
-        Args:
-            batch_lines: Send an email every time this many lines are buffered.
-            idle_seconds: Send an email if we receive no new output for this many seconds.
-            poll_interval: How frequently (seconds) to check for new output / idle.
-            subject_prefix: Prefix added to the email subject.
-            extra_args: Extra CLI flags to forward to `code tunnel`.
-            log_file: Where to persist the raw `code tunnel` output. Defaults to
-                `<working_dir>/vscode_tunnel_runtime.log`.
-            log_append: Append to the log file if True, otherwise truncate.
-
-        Raises:
-            FileNotFoundError: If the `code` binary does not exist in working_dir.
+        Additionally, automatically send Down-Arrow key(s) + Enter to the process'
+        stdin once after start, and again on every flush.
         """  # noqa: D401
+        import pathlib
         import select
         import subprocess
         import time
         from datetime import datetime
+
+        # ---- internal constants you asked to hard-code ----
+        DOWN_PRESSES = 1  # how many times to press Arrow-Down
+        SEND_KEYS_ON_FLUSH = True  # also send on every flush
+        # ---------------------------------------------------
 
         mailer = self.mailer
         code_executable = self.working_dir / "code"
@@ -176,96 +187,118 @@ class VSCodeTunnelManager:
         logger.info("Starting VS Code tunnel with command: %s", " ".join(cmd))
         logger.info("Streaming tunnel output to log file: %s", log_path)
 
-        # Start the subprocess (merge stderr into stdout)
+        # Start the subprocess (merge stderr into stdout; enable stdin)
         proc = subprocess.Popen(
             cmd,
             cwd=self.working_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,  # decode to str automatically
-            bufsize=1,  # line-buffered
-            universal_newlines=True,  # ensure text mode
+            stdin=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
         )
 
-        # Open the log file (line-buffered, so it flushes on each newline)
+        # Open the log file
         mode = "a" if log_append else "w"
         f_log = log_path.open(mode, encoding="utf-8", buffering=1)
 
-        # Internal state
         buffer: list[str] = []
         last_new_line_ts = time.time()
         batch_idx = 1
 
         def write_log_line(raw_line: str) -> None:
-            """Write a single raw line to the log file with timestamp."""
             ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             try:
                 f_log.write(f"[{ts}] {raw_line}\n")
             except Exception as e:
                 logger.exception("Failed to write line to log file: %s", e)
 
+        def _write_to_stdin(p: subprocess.Popen[str], payload: str) -> None:
+            if p.stdin is None:
+                logger.warning("stdin is not available for the tunnel process.")
+                return
+            try:
+                p.stdin.write(payload)
+                p.stdin.flush()
+                logger.info(
+                    "Wrote to tunnel stdin: %r",
+                    payload.encode("unicode_escape").decode(),
+                )
+            except BrokenPipeError:
+                logger.warning("Tunnel process stdin is closed (BrokenPipeError).")
+            except Exception as e:
+                logger.exception("Failed to write to tunnel stdin: %s", e)
+
+        def _send_down_and_enter() -> None:
+            # Arrow Down = \x1b[B, Enter = \r
+            seq = "\x1b[B" * DOWN_PRESSES + "\r"
+            _write_to_stdin(proc, seq)
+
         def flush(reason: str, force: bool = False) -> None:
-            """Send the currently buffered lines via email (if any)."""
             nonlocal buffer, batch_idx
             if not buffer and not force:
+                if SEND_KEYS_ON_FLUSH:
+                    _send_down_and_enter()
                 return
+
             body = "\n".join(buffer) if buffer else "(no new output)"
-            subject = (
-                f"{subject_prefix} Batch #{batch_idx} ({len(buffer)} lines) - {reason}"
-            )
+            subject = f"{subject_prefix}[{tunnel_name}] Batch #{batch_idx} ({len(buffer)} lines) - {reason}"
             ok = mailer.send_text(subject, body)
             if ok:
                 logger.info("Email sent: %s", subject)
             else:
                 logger.error("Failed to send email: %s", subject)
+
+            if SEND_KEYS_ON_FLUSH:
+                _send_down_and_enter()
+
             buffer.clear()
             batch_idx += 1
 
         try:
+            # Immediately press Down + Enter after the process starts
+            _send_down_and_enter()
+
             stdout = proc.stdout
             if stdout is None:
                 raise RuntimeError("Failed to capture process stdout.")
 
-            # Main loop: poll for new lines or idle timeout
             while True:
-                # If the process has exited and stdout is closed, break out
                 if proc.poll() is not None and stdout.closed:
                     break
 
-                # Use select to non-blockingly check for new output
                 rlist, _, _ = select.select([stdout], [], [], poll_interval)
                 if rlist:
-                    # Read one line
                     line = stdout.readline()
                     if line:
                         clean_line = line.rstrip("\n")
-                        # 1) buffer for email
                         buffer.append(clean_line)
-                        # 2) write to debug log file
                         write_log_line(clean_line)
                         last_new_line_ts = time.time()
 
-                        # Condition 1: enough lines buffered
                         if len(buffer) >= batch_lines:
                             flush(reason="batch_lines")
                     else:
-                        # EOF case: if process exited, break after flushing
                         if proc.poll() is not None:
                             break
                 else:
-                    # No new output in this poll interval; check idle condition
                     now = time.time()
                     if now - last_new_line_ts >= idle_seconds:
                         flush(reason="idle_timeout")
 
-            # Final flush after the process exits
             flush(reason="process_exit", force=True)
 
         finally:
-            # Ensure we clean up
             try:
                 f_log.flush()
                 f_log.close()
+            except Exception:
+                pass
+
+            try:
+                if proc.stdin:
+                    proc.stdin.close()
             except Exception:
                 pass
 
@@ -278,3 +311,32 @@ class VSCodeTunnelManager:
                     proc.kill()
                 except Exception:
                     pass
+
+    def run(self) -> None:
+        if not self.working_dir.is_dir():
+            os.makedirs(self.working_dir, exist_ok=True)
+        logger.info(
+            "VSCodeTunnelManager is running with working dir: %s", self.working_dir
+        )
+        # check if the VS Code CLI is already downloaded
+        vscode_tar_gz = self.working_dir / _DEFAULT_VSCODE_CLI_OUTPUT
+        if not vscode_tar_gz.is_file():
+            logger.info("Downloading VS Code CLI...")
+            self.download_vscode()
+        else:
+            logger.info("VS Code CLI already downloaded: %s", vscode_tar_gz)
+        if not (self.working_dir / "code").is_file():
+            logger.info("Extracting VS Code CLI...")
+            self.extract_tar_gz(vscode_tar_gz)
+        else:
+            logger.info("VS Code CLI already extracted.")
+        self.start_tunnel(
+            tunnel_name=self.tunnel_config.tunnel_name,
+            batch_lines=self.tunnel_config.batch_lines,
+            idle_seconds=self.tunnel_config.idle_seconds,
+            poll_interval=self.tunnel_config.poll_interval,
+            subject_prefix=self.tunnel_config.subject_prefix,
+            extra_args=self.tunnel_config.extra_args,
+            log_file=self.tunnel_config.log_file,
+            log_append=self.tunnel_config.log_append,
+        )
