@@ -1,11 +1,14 @@
 from unittest.mock import MagicMock, patch
 
-from vscode_tunnel_manager.vscode_tunnel_manager.email_manager import (
+import pytest
+
+from vscode_tunnel_manager.email_manager import (
     EmailManager,
     SMTPConfig,
 )
 
 
+@pytest.fixture()  # ignore: [misc]
 def smtp_config() -> SMTPConfig:
     return SMTPConfig(
         host="smtp.example.com",
