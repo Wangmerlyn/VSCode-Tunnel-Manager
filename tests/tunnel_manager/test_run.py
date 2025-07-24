@@ -6,17 +6,15 @@ import pytest
 
 from vscode_tunnel_manager import VSCodeTunnelManager, VSCodeTunnelManagerConfig
 
-LOGIN_URL="https://github.com/login/device"
-CODE_PREFIX="use code"
+LOGIN_URL = "https://github.com/login/device"
+CODE_PREFIX = "use code"
 
 
 @pytest.mark.manual
-def test_running_tunnel(tmp_path: Path=Path("tmp/code_working_dir")) -> None:
-    tunnel_config = VSCodeTunnelManagerConfig(
-        working_dir=tmp_path
-    )
+def test_running_tunnel(tmp_path: Path) -> None:
+    tunnel_config = VSCodeTunnelManagerConfig(working_dir=tmp_path)
 
-    cfg =None
+    cfg = None
     manager = VSCodeTunnelManager(cfg, tunnel_config=tunnel_config)
     vscode_path = manager.download_vscode()
     manager.extract_tar_gz(vscode_path)
