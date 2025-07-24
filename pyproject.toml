@@ -130,7 +130,7 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
-ignore = []
+ignore = ["E501"]
 exclude = ["build", "dist", ".venv"]
 
 [tool.ruff.lint.isort]

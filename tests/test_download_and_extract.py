@@ -1,6 +1,18 @@
 import pathlib
 
 from vscode_tunnel_manager import VSCodeTunnelManager
+from vscode_tunnel_manager.email_manager import SMTPConfig
+
+mail_config = SMTPConfig(
+    host="smtp.example.com",
+    port=587,
+    username="user@example.com",
+    use_ssl=False,
+    starttls=True,
+    from_addr="user@example.com",
+    to_addrs=["recipient@example.com"],
+    subject_prefix="[VS Code Tunnel] ",
+)
 
 
 def test_download_and_extract_vscode(tmp_path: pathlib.Path) -> None:
@@ -8,7 +20,7 @@ def test_download_and_extract_vscode(tmp_path: pathlib.Path) -> None:
     Downloads and extracts the VS Code CLI tarball.
     """
     test_path = tmp_path
-    manager = VSCodeTunnelManager(working_dir=test_path)
+    manager = VSCodeTunnelManager(mailer_config=mail_config, working_dir=test_path)
     vscode_path = manager.download_vscode()
     assert vscode_path.is_file(), "VS Code tarball was not downloaded successfully."
     assert vscode_path.name.endswith(".tar.gz"), "Downloaded file is not a tar.gz file."
