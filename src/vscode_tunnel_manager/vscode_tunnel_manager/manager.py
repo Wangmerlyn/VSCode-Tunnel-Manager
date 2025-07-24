@@ -40,10 +40,20 @@ class VSCodeTunnelManager:
 
     def __init__(
         self,
-        mailer_config: SMTPConfig,
+        mailer_config: Optional[SMTPConfig],
         tunnel_config: VSCodeTunnelManagerConfig = VSCodeTunnelManagerConfig(),
     ) -> None:
-        self.mailer = EmailManager(mailer_config)
+        self.mailer = EmailManager(mailer_config) if mailer_config else None
+        if mailer_config and self.mailer:
+            try:
+                self.mailer.send_text(
+                    f"VS Code Tunnel Manager {tunnel_config.tunnel_name} Initialized",
+                    body=f"Tunnel Manager initialized with working directory: {tunnel_config.working_dir}",
+                    to_addrs=mailer_config.to_addrs,
+                )
+            except Exception as e:
+                logger.error("Failed to send initialization email: %s", e)
+                self.mailer = None
         self.tunnel_config = tunnel_config
         self.working_dir = pathlib.Path(tunnel_config.working_dir).resolve()
         os.makedirs(self.working_dir, exist_ok=True)
@@ -244,11 +254,14 @@ class VSCodeTunnelManager:
 
             body = "\n".join(buffer) if buffer else "(no new output)"
             subject = f"{subject_prefix}[{tunnel_name}] Batch #{batch_idx} ({len(buffer)} lines) - {reason}"
-            ok = mailer.send_text(subject, body)
-            if ok:
-                logger.info("Email sent: %s", subject)
+            if mailer is None:
+                print(body)
             else:
-                logger.error("Failed to send email: %s", subject)
+                ok = mailer.send_text(subject, body)
+                if ok:
+                    logger.info("Email sent: %s", subject)
+                else:
+                    logger.error("Failed to send email: %s", subject)
 
             if SEND_KEYS_ON_FLUSH:
                 _send_down_and_enter()
