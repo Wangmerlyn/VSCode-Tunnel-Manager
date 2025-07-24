@@ -1,4 +1,7 @@
-from vscode_tunnel_manager.vscode_tunnel_manager.manager import VSCodeTunnelManager
+from vscode_tunnel_manager.vscode_tunnel_manager.manager import (
+    VSCodeTunnelManager,
+    VSCodeTunnelManagerConfig,
+)
 
-__all__ = ["VSCodeTunnelManager"]
+__all__ = ["VSCodeTunnelManager", "VSCodeTunnelManagerConfig"]
 __version__ = "0.0.2"
