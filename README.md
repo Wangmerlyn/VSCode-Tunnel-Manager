@@ -21,8 +21,6 @@ This enables convenient "offline" or indirect authentication to VS Code tunnels.
 
 ## Usage Example
 
-## Usage Example
-
 ### 1. Create an email app password
 
 Take Gmail for example.
