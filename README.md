@@ -21,8 +21,35 @@ This enables convenient "offline" or indirect authentication to VS Code tunnels.
 
 ## Usage Example
 
+### 1. Create an email app password
+
+Take Gmail for example.
+
+**Step 1 — Enable 2-Step Verification**
+1. Go to Google Account Security.
+2. Under “Signing in to Google”, enable **2-Step Verification**.
+3. Complete the verification setup (phone, authenticator app, etc.).
+
+**Step 2 — Create an App Password**
+1. After enabling 2-Step Verification, go back to the **Security** page.
+2. Find **“App passwords”** (it only appears if 2-Step Verification is enabled).
+3. Sign in again if prompted.
+4. Under **“Select app”**, choose:
+   - Mail
+5. Under **“Select device”**, choose:
+   - The device you’re running Python on (or “Other” → give it a name like `PythonScript`).
+6. Click **Generate**.
+7. Copy the **16-character App Password**.
+
+---
+
+### 2. Use the email app password to login and send emails
+
 ```bash
 pip install git+https://github.com/Wangmerlyn/VSCode-Tunnel-Manager.git@main
+
+export SMTP_PASSWORD="Your App Password"
+
 vscode_tunnel_manager \
   --host smtp.gmail.com \
   --port 587 \
